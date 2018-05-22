@@ -2,16 +2,19 @@ pragma solidity ^0.4.23;
 
 import 'openzeppelin-solidity/contracts/token/ERC20/ERC20Basic.sol';
 import 'openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol';
+import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
 
-contract Ustock is StandardToken {
+contract Ustock is StandardToken, Ownable {
     using SafeMath for uint256;
 
     string public name = "UStock";
     string public symbol = "USK";
     uint256 public decimals = 18;
 
-    uint256 public totalSupply = 1000000 * (uint256(10) ** decimals);
+    uint256 public INITIAL_SUPPLY = 1000000 * (10 ** uint256(decimals)); //total supply
+    uint256 public constant MINING_RESERVE = 0.6 * 1000000 * (10 ** uint256(decimals));   // amount reserved for mining
+
     uint256 public totalRaised; // total ether raised (in wei)
 
     uint256 public startTimestamp; // timestamp after which ICO will start
@@ -19,6 +22,8 @@ contract Ustock is StandardToken {
 
     uint256 public minCap; // the ICO ether goal (in wei)
     uint256 public maxCap; // the ICO ether max cap (in wei)
+
+    mapping(address => string)                 public  keys;
 
     /**
      * Address which will receive raised funds 
@@ -36,9 +41,14 @@ contract Ustock is StandardToken {
         minCap = _minCap;
         maxCap = _maxCap;
 
-        // initially assign all tokens to the fundsWallet
-        balances[fundsWallet] = totalSupply;
-        emit Transfer(0x0, fundsWallet, totalSupply);
+        totalSupply_ = INITIAL_SUPPLY;
+        // 销掉60%
+        balances[0xb1] = MINING_RESERVE;
+
+        // founder持有40%
+        balances[fundsWallet] = INITIAL_SUPPLY - MINING_RESERVE;
+        emit Transfer(0x0, 0xb1, MINING_RESERVE);
+        emit Transfer(0x0, fundsWallet, INITIAL_SUPPLY - MINING_RESERVE);
     }
 
     function() isIcoOpen public payable {
@@ -54,7 +64,7 @@ contract Ustock is StandardToken {
     }
 
     function calculateTokenAmount(uint256 weiAmount) public constant returns (uint256) {
-        // standard rate: 1 ETH : 50 ESP
+        // standard rate: 1 ETH : 50 USK
         uint256 tokenAmount = weiAmount.mul(50);
         if (now <= startTimestamp + 7 days) {
             // +50% bonus during first week
@@ -70,6 +80,17 @@ contract Ustock is StandardToken {
 
     function transferFrom(address _from, address _to, uint _value) isIcoFinished public returns (bool) {
         return super.transferFrom(_from, _to, _value);
+    }
+
+    //用于内部指派
+    function assignTo(address _to, uint _value) onlyOwner public returns (bool) {
+        return super.transfer(_to, _value);
+    }
+
+    //由ultrain链生成的公钥
+    function register(string key) {
+        assert(bytes(key).length <= 64);
+        keys[msg.sender] = key;
     }
 
     modifier isIcoOpen() {

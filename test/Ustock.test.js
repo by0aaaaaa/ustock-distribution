@@ -1,4 +1,5 @@
 const Ustock = artifacts.require('./Ustock.sol');
+const Factory = artifacts.require('./Factory.sol');
 
 // various test utility functions
 const transaction = (address, wei) => ({
@@ -46,7 +47,7 @@ const timeController = (() => {
     };
 })();
 
-contract('Ustock', accounts => {
+contract('Ustock', (accounts) => {
 
     const fundsWallet = accounts[1];
     const buyerOneWallet = accounts[2];
@@ -58,20 +59,27 @@ contract('Ustock', accounts => {
     const maxCap = toWei(5);
 
     const createToken = () => Ustock.new(fundsWallet, timeController.currentTimestamp(), minCap, maxCap);
+    console.log(timeController.currentTimestamp())
 
     // REQ001: Basic ERC20 “Ustock” with symbol of “USK”,
     // 18 decimals (reflecting ether’s smallest unit - wei)
     // and total supply of 1,000,000 units created at contract deployment
     // and assigned to a specific wallet,
-    it('should have initial supply of 1,000,000 units assigned to funds wallet', async () => {
+    it('should have initial supply of 1,000,000 totally', async () => {
         const ustock = await createToken();
         const expectedSupply = toWei(1000000);
+        const expectedFounderHoldSupply = toWei(1000000 * 0.4);
 
         const totalSupply = await ustock.totalSupply();
         assert.equal(totalSupply, expectedSupply, 'Total supply mismatch');
+    });
+
+    it('should have initial supply of 400,000 units assigned to funds wallet', async () => {
+        const ustock = await createToken();
+        const expectedFounderHoldSupply = toWei(1000000 * 0.4);
 
         const fundsWalletBalance = await ustock.balanceOf(fundsWallet);
-        assert.equal(fundsWalletBalance.toNumber(), expectedSupply, 'Initial funds wallet balance mismatch');
+        assert.equal(fundsWalletBalance.toNumber(), expectedFounderHoldSupply, 'Initial funds wallet balance mismatch');
     });
 
     // REQ002: The ICO is going to last 4 weeks,
@@ -228,6 +236,16 @@ contract('Ustock', accounts => {
         const buyerOneBalance = await ustock.balanceOf(buyerOneWallet);
 
         assert.equal(buyerOneBalance.toNumber(), 50 * oneEth, 'Buyer one token balance mismatch');
+    });
+
+});
+
+contract('Factory', accounts => {
+
+    it('createContract', async () => {
+        const factory = await Factory.new()
+        const token = await factory.createContract('0x397afadfdabd962d2316cb3ced89e995baca090d', 1526904454, 2, 5)
+        console.log(token)
     });
 
 });
