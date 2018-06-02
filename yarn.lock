@@ -1188,7 +1188,7 @@ once@^1.3.0:
   dependencies:
     wrappy "1"
 
-openzeppelin-solidity@1.9.0:
+openzeppelin-solidity@^1.9.0:
   version "1.9.0"
   resolved "http://registry.npm.taobao.org/openzeppelin-solidity/download/openzeppelin-solidity-1.9.0.tgz#929c2e8eab5d1935a048390a77645b36dfc5cfad"
 
