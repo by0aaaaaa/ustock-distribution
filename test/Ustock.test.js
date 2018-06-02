@@ -1,4 +1,3 @@
-/*
 const Ustock = artifacts.require('./Ustock.sol');
 const Factory = artifacts.require('./Factory.sol');
 
@@ -53,17 +52,12 @@ contract('Ustock', (accounts) => {
     const owner = accounts[0];
     const privateRaiseWallet = accounts[1];
 
-    let TOTAL_SUPPLY = 10000000000;
-
-    const oneEth = toWei(1);
+    let TOTAL_SUPPLY = 1000000000;
 
     const createToken = () => Ustock.new(owner);
 
-    // REQ001: Basic ERC20 “Ustock” with symbol of “USK”,
-    // 18 decimals (reflecting ether’s smallest unit - wei)
-    // and total supply of 1,000,000 units created at contract deployment
-    // and assigned to a specific wallet,
-    it('should have initial supply of 10000000000 totally', async () => {
+    // 发行总量1000000000
+    it('should have initial supply of 1000000000 totally', async () => {
         const ustock = await createToken();
         const expectedSupply = TOTAL_SUPPLY;
 
@@ -71,16 +65,33 @@ contract('Ustock', (accounts) => {
         assert.equal(totalSupply.toNumber(), expectedSupply, 'Total supply mismatch');
     });
 
-    it('should have supply of 5000000000 units assigned to funds Wallet', async () => {
+    // 创始机构持有50%
+    it('should have supply of 500000000 units assigned to funds Wallet', async () => {
         const ustock = await createToken();
         const fundsWalletBalance = await ustock.balanceOf(owner);
         const expectedFundsWalletBalanceTotal = TOTAL_SUPPLY * 0.5;
 
+        //let owner2 = await ustock.owner();
+        //console.log(owner2)
+
         assert.equal(fundsWalletBalance.toNumber(), expectedFundsWalletBalanceTotal, 'funds Wallet balance mismatch');
     });
 
+    // 关闭前可以转账
+    /*it('should have supply of 5000000000 units assigned to funds Wallet', async () => {
+        const ustock = await createToken();
+        const fundsWalletBalance = await ustock.balanceOf(owner);
+        const expectedFundsWalletBalanceTotal = TOTAL_SUPPLY * 0.5;
 
-    /!**
+        //let owner2 = await ustock.owner();
+        //console.log(owner2)
+
+        assert.equal(fundsWalletBalance.toNumber(), expectedFundsWalletBalanceTotal, 'funds Wallet balance mismatch');
+    });*/
+
+
+
+    /**
     // REQ002: The ICO is going to last 4 weeks,
     // trying to raise a minimum of 1,000 ETH and maximum of 20,000 ETH;
     // if the goal is not met the ICO continues until the payments reach the min cap
@@ -235,17 +246,16 @@ contract('Ustock', (accounts) => {
         const buyerOneBalance = await ustock.balanceOf(buyerOneWallet);
 
         assert.equal(buyerOneBalance.toNumber(), 50 * oneEth, 'Buyer one token balance mismatch');
-    });*!/
+    });*/
 
 });
 
 contract('Factory', accounts => {
 
-    /!*it('createContract', async () => {
+    /*it('createContract', async () => {
         const factory = await Factory.new()
         const token = await factory.createContract('0x397afadfdabd962d2316cb3ced89e995baca090d', 1526904454, 2, 5)
         console.log(token)
-    });*!/
+    });*/
 
 });
-*/

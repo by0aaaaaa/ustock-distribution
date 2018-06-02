@@ -9,7 +9,10 @@ const transaction = (address, wei) => ({
 });
 const ethBalance = (address) => web3.eth.getBalance(address).toNumber();
 const toWei = (number) => number * Math.pow(10, 18);
-
+const getYmd = (timestamp) => {
+    var date = new Date(timestamp * 1000);
+    return date.toLocaleString();
+}
 
 require('chai')
     .use(require('chai-as-promised'))
@@ -32,54 +35,68 @@ contract('TokenVesting', async (accounts) => {
         this.token = await Ustock.new(owner, {from: owner});
 
         this.start = latestTime() + duration.minutes(1); // +1 minute so it starts after contract instantiation
-        this.cliff = duration.years(1);
         this.duration = duration.years(2);
+        this.phase = 4;
 
         //构造锁仓合约
-        this.vesting = await TokenVesting.new(beneficiary, this.start, this.cliff, this.duration, true, {from: owner});
+        this.vesting = await TokenVesting.new(beneficiary, this.start, this.duration, this.phase, true, {from: owner});
 
         //将代币合约转入到锁仓合约的地址中
         await this.token.transfer(this.vesting.address, amount, {from: owner});
     });
 
 
-    // 在断崖前不能释放代币
-    it('cannot be released before cliff', async function () {
-        await this.vesting.release(this.token.address).should.be.rejectedWith(EVMRevert);
-    });
-
-    // 在断崖后可以释放代币
-    it('can be released after cliff', async function () {
-        await increaseTimeTo(this.start + this.cliff + duration.weeks(1));
+    // 在归属第一个阶段结束前可以主动释放代币，但只能释放0个
+    it('cannot be released before the first phase end', async function () {
+        await increaseTimeTo(this.start + duration.minutes(1));
         await this.vesting.release(this.token.address).should.be.fulfilled;
-    });
-
-    // 在断崖后能够释放合适数量的代币
-    it('should release proper amount after cliff', async function () {
-        await increaseTimeTo(this.start + this.cliff);
-
-        const {receipt} = await this.vesting.release(this.token.address);
-        const releaseTime = web3.eth.getBlock(receipt.blockNumber).timestamp;
-
         const balance = await this.token.balanceOf(beneficiary);
-        //console.log(balance.toNumber())
-        balance.should.bignumber.equal(amount.mul(releaseTime - this.start).div(this.duration).floor());
+        balance.should.bignumber.equal(0);
     });
 
-    // 在归属期应该线性归属（在归属期取4个点进行测试）
-    it('should linearly release tokens during vesting period', async function () {
-        const vestingPeriod = this.duration - this.cliff;
+    // 在归属第一个阶段后能够释放 1/phase 数量的代币
+    it('should release proper amount after the first phase', async function () {
+        await increaseTimeTo(this.start + duration.seconds(this.duration / this.phase));
+        await this.vesting.release(this.token.address);
+        const balance = await this.token.balanceOf(beneficiary);
+        balance.should.bignumber.equal(amount.div(this.phase).floor());
+    });
+
+    // 在归属第n个阶段结束时，直接释放 n*(1/phase) 数量的代币
+    it('should directly release n*(1/phase) tokens when at the time point of n phase', async function () {
+        const vestingPeriod = this.duration;
         const checkpoints = 4;
 
-        for (let i = 1; i <= checkpoints; i++) {
-            const now = this.start + this.cliff + i * (vestingPeriod / checkpoints);
+        for (let i = 1; i <= this.phase; i++) {
+
+            const now = this.start + i * (vestingPeriod / checkpoints);
             await increaseTimeTo(now);
 
             await this.vesting.release(this.token.address);
             const balance = await this.token.balanceOf(beneficiary);
             //console.log(balance.toNumber())
 
-            const expectedVesting = amount.mul(now - this.start).div(this.duration).floor();
+            const expectedVesting = amount.div(this.phase).mul(i);
+            balance.should.bignumber.equal(expectedVesting);
+        }
+    });
+
+    // 在归属第n个阶段结束前，仍只能释放 (n-1)*(1/phase) 数量的代币
+    it('should still release (n-1)*(1/phase) tokens when before the time point of n phase', async function () {
+        const vestingPeriod = this.duration;
+        const checkpoints = 4;
+
+        for (let i = 1; i <= this.phase; i++) {
+
+            const now = this.start + i * (vestingPeriod / checkpoints) - (vestingPeriod / (checkpoints * 2));
+            await increaseTimeTo(now);
+            //console.log(getYmd(this.start) + '~~~~~' + getYmd(now))
+
+            await this.vesting.release(this.token.address);
+            const balance = await this.token.balanceOf(beneficiary);
+            const expectedVesting = amount.div(this.phase).mul(i - 1);
+
+            //console.log(balance.toNumber() + '~~~~~' + expectedVesting.toNumber())
             balance.should.bignumber.equal(expectedVesting);
         }
     });
@@ -101,13 +118,13 @@ contract('TokenVesting', async (accounts) => {
 
     // 如果没有设置可废除，则可不以废除
     it('should fail to be revoked by owner if revocable not set', async function () {
-        const vesting = await TokenVesting.new(beneficiary, this.start, this.cliff, this.duration, false, {from: owner});
+        const vesting = await TokenVesting.new(beneficiary, this.start, this.duration, this.phase, false, {from: owner});
         await vesting.revoke(this.token.address, {from: owner}).should.be.rejectedWith(EVMRevert);
     });
 
-    // 在废除后，不有归属的部分要被回收到owner帐户中
+    // 在废除后，没有归属的部分要被回收到owner帐户中
     it('should return the non-vested tokens when revoked by owner', async function () {
-        await increaseTimeTo(this.start + this.cliff + duration.weeks(12));
+        await increaseTimeTo(this.start + duration.seconds(this.duration / this.phase) + duration.minutes(1));
 
         const vested = await this.vesting.vestedAmount(this.token.address);
         //console.log(vested.toNumber())
@@ -115,13 +132,13 @@ contract('TokenVesting', async (accounts) => {
         const originalOwnerBalance = await this.token.balanceOf(owner);
         //console.log(originalOwnerBalance.toNumber())
 
-        //const beneficiaryBalance2 = await this.token.balanceOf(beneficiary);
+        const beneficiaryBalance2 = await this.token.balanceOf(beneficiary);
         //console.log(beneficiaryBalance2.toNumber())
 
         // 你可以自己去释放，这一步我们不关心
-        //await this.vesting.release(this.token.address);
+        await this.vesting.release(this.token.address);
 
-        //const beneficiaryBalance3 = await this.token.balanceOf(beneficiary);
+        const beneficiaryBalance3 = await this.token.balanceOf(beneficiary);
         //console.log(beneficiaryBalance3.toNumber())
 
         await this.vesting.revoke(this.token.address, {from: owner});
@@ -134,7 +151,7 @@ contract('TokenVesting', async (accounts) => {
 
     // 在废除前后，已归属的部分应该保持不变
     it('should keep the vested tokens when revoked by owner', async function () {
-        await increaseTimeTo(this.start + this.cliff + duration.weeks(12));
+        await increaseTimeTo(this.start + duration.seconds(this.duration / this.phase) + duration.minutes(1));
 
         const vestedPre = await this.vesting.vestedAmount(this.token.address);
 
@@ -147,12 +164,14 @@ contract('TokenVesting', async (accounts) => {
 
     // 应该只能废除一遍
     it('should fail to be revoked a second time', async function () {
-        await increaseTimeTo(this.start + this.cliff + duration.weeks(12));
+        await increaseTimeTo(this.start + duration.seconds(this.duration / this.phase) + duration.minutes(1));
 
-        await this.vesting.vestedAmount(this.token.address);
+        const vested = await this.vesting.vestedAmount(this.token.address);
 
         await this.vesting.revoke(this.token.address, {from: owner});
+        //console.log(vested.toNumber())
 
         await this.vesting.revoke(this.token.address, {from: owner}).should.be.rejectedWith(EVMRevert);
+        //console.log(vested.toNumber())
     });
 });

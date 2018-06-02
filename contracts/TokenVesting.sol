@@ -23,11 +23,13 @@ contract TokenVesting is Ownable {
 
     // beneficiary of tokens after they are released
     address public beneficiary;
-
-    uint256 public cliff;
+    // start time of vesting
     uint256 public start;
+    // duration time of vesting
     uint256 public duration;
-
+    // total sum of phase that the duration are divided
+    uint256 public phase;
+    // whether can be revocable
     bool public revocable;
 
     mapping(address => uint256) public released;
@@ -38,27 +40,27 @@ contract TokenVesting is Ownable {
      * _beneficiary, gradually in a linear fashion until _start + _duration. By then all
      * of the balance will have vested.
      * @param _beneficiary address of the beneficiary to whom vested tokens are transferred
-     * @param _cliff duration in seconds of the cliff in which tokens will begin to vest
      * @param _duration duration in seconds of the period in which the tokens will vest
+     * @param _phase total sum of phase that the duration are divided
      * @param _revocable whether the vesting is revocable or not
      */
     constructor(
         address _beneficiary,
         uint256 _start,
-        uint256 _cliff,
         uint256 _duration,
+        uint256 _phase,
         bool _revocable
     )
     public
     {
         require(_beneficiary != address(0));
-        require(_cliff <= _duration);
+        require(_phase >= 1);
 
         beneficiary = _beneficiary;
-        revocable = _revocable;
-        duration = _duration;
-        cliff = _start.add(_cliff);
         start = _start;
+        duration = _duration;
+        phase = _phase;
+        revocable = _revocable;
     }
 
     /**
@@ -68,7 +70,7 @@ contract TokenVesting is Ownable {
     function release(ERC20Basic token) public {
         uint256 unreleased = releasableAmount(token);
 
-        require(unreleased > 0);
+        require(unreleased >= 0);
 
         released[token] = released[token].add(unreleased);
 
@@ -114,12 +116,14 @@ contract TokenVesting is Ownable {
         uint256 currentBalance = token.balanceOf(this);
         uint256 totalBalance = currentBalance.add(released[token]);
 
-        if (block.timestamp < cliff) {
+        if (block.timestamp < start) {
             return 0;
         } else if (block.timestamp >= start.add(duration) || revoked[token]) {
             return totalBalance;
         } else {
-            return totalBalance.mul(block.timestamp.sub(start)).div(duration);
+            uint256 everyPhaseDuration = duration.div(phase);
+            uint256 currentPhase = (block.timestamp - start).div(everyPhaseDuration);
+            return totalBalance.div(phase).mul(currentPhase);
         }
     }
 }
