@@ -38,7 +38,6 @@ contract('TokenVesting', async (accounts) => {
         //this.start = new Date(2017, 11, 1).getTime() / 1000; // +1 minute so it starts after contract instantiation
         //console.log(this.start,latestTime())
 
-        // 针对员工情况，构造一个未来的时间
         this.start = latestTime() + duration.minutes(1); // +1 minute so it starts after contract instantiation
         //console.log(this.start)
         //console.log(new Date(2017, 12, 1).getTime())
@@ -62,16 +61,8 @@ contract('TokenVesting', async (accounts) => {
         //console.log(balanceOwner2.toNumber())
     });
 
+
     // 在归属第一个阶段结束前可以主动释放代币，但只能释放0个
-    it('xxxxxxxxxxxx', async function () {
-        await this.vesting.release(this.token.address).should.be.fulfilled;
-        const balance = await this.token.balanceOf(beneficiary);
-        console.log(balance.toNumber())
-        //balance.should.bignumber.equal(0);
-    });
-
-
-    /*// 在归属第一个阶段结束前可以主动释放代币，但只能释放0个
     it('cannot be released before the first phase end', async function () {
         await increaseTimeTo(this.start + duration.minutes(1));
         await this.vesting.release(this.token.address).should.be.fulfilled;
@@ -217,5 +208,5 @@ contract('TokenVesting', async (accounts) => {
         //console.log(balanceSec.toNumber())
 
         balanceFirst.should.bignumber.equal(balanceSec);
-    });*/
+    });
 });
