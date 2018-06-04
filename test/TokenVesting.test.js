@@ -34,8 +34,18 @@ contract('TokenVesting', async (accounts) => {
         //构造代币合约
         this.token = await Ustock.new({from: owner});
 
+        // 针对私募情况，构造一个半年前的起始时间即可
+        //this.start = new Date(2017, 11, 1).getTime() / 1000; // +1 minute so it starts after contract instantiation
+        //console.log(this.start,latestTime())
+
+        // 针对员工情况，构造一个未来的时间
         this.start = latestTime() + duration.minutes(1); // +1 minute so it starts after contract instantiation
+        //console.log(this.start)
+        //console.log(new Date(2017, 12, 1).getTime())
+
         this.duration = duration.years(2);
+        //console.log(this.duration)
+
         this.phase = 4;
 
         //构造锁仓合约
@@ -45,14 +55,23 @@ contract('TokenVesting', async (accounts) => {
         //console.log(balanceOwner.toNumber())
 
         //将代币合约转入到锁仓合约的地址中
+        console.log(amount.toNumber())
         await this.token.transfer(this.vesting.address, amount, {from: owner});
 
         //const balanceOwner2 = await this.token.balanceOf(owner);
         //console.log(balanceOwner2.toNumber())
     });
 
-
     // 在归属第一个阶段结束前可以主动释放代币，但只能释放0个
+    it('xxxxxxxxxxxx', async function () {
+        await this.vesting.release(this.token.address).should.be.fulfilled;
+        const balance = await this.token.balanceOf(beneficiary);
+        console.log(balance.toNumber())
+        //balance.should.bignumber.equal(0);
+    });
+
+
+    /*// 在归属第一个阶段结束前可以主动释放代币，但只能释放0个
     it('cannot be released before the first phase end', async function () {
         await increaseTimeTo(this.start + duration.minutes(1));
         await this.vesting.release(this.token.address).should.be.fulfilled;
@@ -184,4 +203,19 @@ contract('TokenVesting', async (accounts) => {
         await this.vesting.revoke(this.token.address, {from: owner}).should.be.rejectedWith(EVMRevert);
         //console.log(vested.toNumber())
     });
+
+    // 应该只能release一遍
+    it('should fail to be revoked a second time', async function () {
+        await increaseTimeTo(this.start + duration.seconds(this.duration / this.phase) + duration.minutes(1));
+
+        await this.vesting.release(this.token.address);
+        const balanceFirst = await this.token.balanceOf(beneficiary);
+        //console.log(balanceFirst.toNumber())
+
+        await this.vesting.release(this.token.address);
+        const balanceSec = await this.token.balanceOf(beneficiary);
+        //console.log(balanceSec.toNumber())
+
+        balanceFirst.should.bignumber.equal(balanceSec);
+    });*/
 });

@@ -1,4 +1,3 @@
-/*
 import EVMRevert from 'openzeppelin-solidity/test/helpers/EVMRevert';
 
 const BigNumber = web3.BigNumber;
@@ -179,4 +178,3 @@ contract('Ustock', (accounts) => {
     });
 
 });
-*/

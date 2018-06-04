@@ -2,23 +2,26 @@ pragma solidity ^0.4.23;
 
 import 'contracts/TokenVesting.sol';
 
-contract VestingFactory {
+contract TokenVestingFactory is Ownable {
 
-    function createVesting(
+    event Created(TokenVesting vesting);
+
+    function create(
         address _beneficiary,
         uint256 _start,
         uint256 _duration,
         uint256 _phase,
         bool _revocable
-    )
-    public returns (address created)
-    {
-        return new TokenVesting(
+    ) onlyOwner public returns (TokenVesting) {
+        TokenVesting vesting = new TokenVesting(
             _beneficiary,
             _start,
             _duration,
             _phase,
             _revocable
         );
+        emit Created(vesting);
+        return vesting;
     }
 }
+
