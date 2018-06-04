@@ -1,9 +1,9 @@
+/*
 import EVMRevert from 'openzeppelin-solidity/test/helpers/EVMRevert';
 
 const BigNumber = web3.BigNumber;
 
 const Ustock = artifacts.require('./Ustock.sol');
-const Factory = artifacts.require('./Factory.sol');
 
 require('chai')
     .use(require('chai-as-promised'))
@@ -29,30 +29,28 @@ contract('Ustock', (accounts) => {
 
     let TOTAL_SUPPLY = 1000000000;
 
-    const createToken = () => Ustock.new(fundsWallet);
+    const createToken = async () => {
+        const ustock = Ustock.new();
+        return ustock;
+    }
 
     // 发行总量1000000000
     it('should have initial supply of 1000000000 totally', async () => {
         const ustock = await createToken();
-        const expectedSupply = TOTAL_SUPPLY;
+        const expectedSupply = toWei(TOTAL_SUPPLY);
 
         const totalSupply = await ustock.totalSupply();
-        assert.equal(totalSupply.toNumber(), expectedSupply, 'Total supply mismatch');
+        assert.equal(totalSupply, expectedSupply, 'Total supply mismatch');
     });
 
     // 创始机构持有50%
-    it('should have supply of 500000000 units assigned to funds Wallet', async () => {
+    it('should have supply of 500000000 units assigned to owner Wallet', async () => {
         const ustock = await createToken();
+
         const ownerWalletBalance = await ustock.balanceOf(owner);
-        const expectedOwnerWalletBalanceTotal = 0;
+        const expectedOwnerWalletBalanceTotal = toWei(TOTAL_SUPPLY * 0.5);
 
-        const fundsWalletBalance = await ustock.balanceOf(fundsWallet);
-        const expectedFundsWalletBalanceTotal = TOTAL_SUPPLY * 0.5;
-
-        //console.log(ownerWalletBalance.toNumber(), fundsWalletBalance.toNumber())
-
-        assert.equal(ownerWalletBalance.toNumber(), expectedOwnerWalletBalanceTotal, 'owner Wallet balance mismatch');
-        assert.equal(fundsWalletBalance.toNumber(), expectedFundsWalletBalanceTotal, 'funds Wallet balance mismatch');
+        assert.equal(ownerWalletBalance, expectedOwnerWalletBalanceTotal, 'owner Wallet balance mismatch');
     });
 
     // 应该有一个owner
@@ -108,7 +106,7 @@ contract('Ustock', (accounts) => {
     it('can transfer when contract open', async () => {
         const ustock = await createToken();
 
-        await ustock.transfer(privateRaiserWallet, 1000, {from: fundsWallet}).should.be.fulfilled;
+        await ustock.transfer(privateRaiserWallet, 1000, {from: owner}).should.be.fulfilled;
 
         const privateRaiserBalance = await ustock.balanceOf(privateRaiserWallet);
         assert.equal(privateRaiserBalance.toNumber(), 1000, 'privateRaiser Wallet balance mismatch');
@@ -118,8 +116,8 @@ contract('Ustock', (accounts) => {
     it('can approve and transferFrom when contract open', async () => {
         const ustock = await createToken();
 
-        await ustock.approve(privateRaiserWallet, 1500, {from: fundsWallet});
-        await ustock.transferFrom(fundsWallet, privateRaiserWallet, 1000, {from: privateRaiserWallet}).should.be.fulfilled;
+        await ustock.approve(privateRaiserWallet, 1500, {from: owner});
+        await ustock.transferFrom(owner, privateRaiserWallet, 1000, {from: privateRaiserWallet}).should.be.fulfilled;
 
         const privateRaiserBalance = await ustock.balanceOf(privateRaiserWallet);
         assert.equal(privateRaiserBalance.toNumber(), 1000, 'privateRaiser Wallet balance mismatch');
@@ -130,7 +128,7 @@ contract('Ustock', (accounts) => {
         const ustock = await createToken();
 
         await ustock.close({from: owner});
-        await ustock.transfer(privateRaiserWallet, 1000, {from: fundsWallet}).should.be.rejectedWith(EVMRevert);
+        await ustock.transfer(privateRaiserWallet, 1000, {from: owner}).should.be.rejectedWith(EVMRevert);
 
         const privateRaiserBalance = await ustock.balanceOf(privateRaiserWallet);
         assert.equal(privateRaiserBalance.toNumber(), 0, 'privateRaiser Wallet balance mismatch');
@@ -141,8 +139,8 @@ contract('Ustock', (accounts) => {
         const ustock = await createToken();
         await ustock.close({from: owner});
 
-        await ustock.approve(privateRaiserWallet, 1500, {from: fundsWallet});
-        await ustock.transferFrom(fundsWallet, privateRaiserWallet, 1000, {from: privateRaiserWallet}).should.be.rejectedWith(EVMRevert);
+        await ustock.approve(privateRaiserWallet, 1500, {from: owner});
+        await ustock.transferFrom(owner, privateRaiserWallet, 1000, {from: privateRaiserWallet}).should.be.rejectedWith(EVMRevert);
 
         const privateRaiserBalance = await ustock.balanceOf(privateRaiserWallet);
         assert.equal(privateRaiserBalance.toNumber(), 0, 'privateRaiser Wallet balance mismatch');
@@ -181,13 +179,4 @@ contract('Ustock', (accounts) => {
     });
 
 });
-
-contract('Factory', accounts => {
-
-    /*it('createContract', async () => {
-        const factory = await Factory.new()
-        const token = await factory.createContract('0x397afadfdabd962d2316cb3ced89e995baca090d', 1526904454, 2, 5)
-        console.log(token)
-    });*/
-
-});
+*/

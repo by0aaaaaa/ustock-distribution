@@ -24,7 +24,7 @@ const TokenVesting = artifacts.require('TokenVesting');
 
 contract('TokenVesting', async (accounts) => {
 
-    const amount = new BigNumber(10000);
+    const amount = new BigNumber(toWei(10000000));
 
     const owner = accounts[0];
     const privateRaiseWallet = accounts[1];
@@ -32,7 +32,7 @@ contract('TokenVesting', async (accounts) => {
 
     beforeEach(async function () {
         //构造代币合约
-        this.token = await Ustock.new(owner, {from: owner});
+        this.token = await Ustock.new({from: owner});
 
         this.start = latestTime() + duration.minutes(1); // +1 minute so it starts after contract instantiation
         this.duration = duration.years(2);
@@ -41,8 +41,14 @@ contract('TokenVesting', async (accounts) => {
         //构造锁仓合约
         this.vesting = await TokenVesting.new(beneficiary, this.start, this.duration, this.phase, true, {from: owner});
 
+        //const balanceOwner = await this.token.balanceOf(owner);
+        //console.log(balanceOwner.toNumber())
+
         //将代币合约转入到锁仓合约的地址中
         await this.token.transfer(this.vesting.address, amount, {from: owner});
+
+        //const balanceOwner2 = await this.token.balanceOf(owner);
+        //console.log(balanceOwner2.toNumber())
     });
 
 
@@ -56,9 +62,13 @@ contract('TokenVesting', async (accounts) => {
 
     // 在归属第一个阶段后能够释放 1/phase 数量的代币
     it('should release proper amount after the first phase', async function () {
-        await increaseTimeTo(this.start + duration.seconds(this.duration / this.phase));
+        await increaseTimeTo(this.start + duration.seconds(this.duration / this.phase) + duration.minutes(100));
+
         await this.vesting.release(this.token.address);
+
         const balance = await this.token.balanceOf(beneficiary);
+        //console.log(balance.toNumber())
+
         balance.should.bignumber.equal(amount.div(this.phase).floor());
     });
 

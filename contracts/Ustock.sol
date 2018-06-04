@@ -9,28 +9,22 @@ contract Ustock is StandardToken, Ownable {
     string public name = "UStock";
     string public symbol = "USK";
     uint256 public decimals = 18;
-    uint256 public INITIAL_SUPPLY = 1000000000;                    // total supply
-    uint256 public MINING_RESERVE = 1000000000 * 0.5;              // amount reserved for mining
+    uint256 public INITIAL_SUPPLY = 1000000000 * (10 ** uint256(decimals));                     // total supply
+    uint256 public MINING_RESERVE = 1000000000 * 0.5 * (10 ** uint256(decimals));               // amount reserved for mining
 
-    address public fundsWallet;                                     // funds reserve 50%
-
-    mapping(address => string) public  keys;                        // map<eth address,  ultrain keys>
-    bool public closed = false;                                     // whether close contract
+    mapping(address => string) public  keys;                                                    // map<eth address,  ultrain keys>
+    bool public closed = false;                                                                 // whether close contract
 
     event Close();
     event Open();
 
-    constructor(
-        address _fundsWallet)
-    public {
-        fundsWallet = _fundsWallet;
-
+    constructor() public {
         totalSupply_ = INITIAL_SUPPLY;
         balances[0xb1] = MINING_RESERVE;
-        balances[fundsWallet] = INITIAL_SUPPLY - MINING_RESERVE;
+        balances[msg.sender] = INITIAL_SUPPLY - MINING_RESERVE;
 
         emit Transfer(0x0, 0xb1, MINING_RESERVE);
-        emit Transfer(0x0, fundsWallet, INITIAL_SUPPLY - MINING_RESERVE);
+        emit Transfer(0x0, msg.sender, INITIAL_SUPPLY - MINING_RESERVE);
     }
 
     // ------------------------------------------------------------------------

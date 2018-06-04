@@ -1,5 +1,5 @@
-var Factory = artifacts.require("./Factory.sol");
+var VestingFactory = artifacts.require("./VestingFactory.sol");
 
 module.exports = function(deployer) {
-    deployer.deploy(Factory);
+    deployer.deploy(VestingFactory);
 };
