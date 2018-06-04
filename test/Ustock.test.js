@@ -34,7 +34,7 @@ contract('Ustock', (accounts) => {
         return ustock;
     }
 
-    // 发行总量1000000000
+    // Total issued ugas: 1000000000
     it('should have initial supply of 1000000000 totally', async () => {
         const ustock = await createToken();
         const expectedSupply = toWei(TOTAL_SUPPLY);
@@ -43,7 +43,7 @@ contract('Ustock', (accounts) => {
         assert.equal(totalSupply, expectedSupply, 'Total supply mismatch');
     });
 
-    // 创始机构持有50%
+    // Founding institutions hold 50%
     it('should have supply of 500000000 units assigned to owner Wallet', async () => {
         const ustock = await createToken();
 
@@ -53,7 +53,7 @@ contract('Ustock', (accounts) => {
         assert.equal(ownerWalletBalance, expectedOwnerWalletBalanceTotal, 'owner Wallet balance mismatch');
     });
 
-    // 应该有一个owner
+    // should have an owner
     it('should have an owner', async () => {
         const ustock = await createToken();
 
@@ -62,7 +62,7 @@ contract('Ustock', (accounts) => {
         owner.should.not.eq(ZERO_ADDRESS);
     });
 
-    // 可以转移owner
+    // change owner
     it('changes owner after transfer', async function () {
         const ustock = await createToken();
         let other = fundsWallet;
@@ -72,7 +72,7 @@ contract('Ustock', (accounts) => {
         owner.should.eq(other);
     });
 
-    // 应该阻止非owner来进行所有权变更
+    // should prevent non-owners from modifiying ownership
     it('should prevent non-owners from transfering', async function () {
         const ustock = await createToken();
 
@@ -84,7 +84,7 @@ contract('Ustock', (accounts) => {
         await ustock.transferOwnership(other, {from: other}).should.be.rejectedWith(EVMRevert);
     });
 
-    // 不能将owner权置空
+    // guard ownership against stuck state
     it('should guard ownership against stuck state', async function () {
         const ustock = await createToken();
 
@@ -92,7 +92,7 @@ contract('Ustock', (accounts) => {
         await ustock.transferOwnership(null, {from: originalOwner}).should.be.rejectedWith(EVMRevert);
     });
 
-    // 只有owner可以手动关闭合约
+    // only owner can manually start or close the contract 
     it('can close the contract manual only by the owner', async function () {
         const ustock = await createToken();
 
@@ -102,7 +102,7 @@ contract('Ustock', (accounts) => {
         await ustock.close({from: fundsWallet}).should.be.rejectedWith(EVMRevert);
     });
 
-    // 合约关闭前可以进行转账主动转账
+    // can call transfer when contract is open
     it('can transfer when contract open', async () => {
         const ustock = await createToken();
 
@@ -112,7 +112,7 @@ contract('Ustock', (accounts) => {
         assert.equal(privateRaiserBalance.toNumber(), 1000, 'privateRaiser Wallet balance mismatch');
     });
 
-    // 合约关闭前可以进行转账授权被动转账
+    // can call transferFrom when contract is open
     it('can approve and transferFrom when contract open', async () => {
         const ustock = await createToken();
 
@@ -123,7 +123,7 @@ contract('Ustock', (accounts) => {
         assert.equal(privateRaiserBalance.toNumber(), 1000, 'privateRaiser Wallet balance mismatch');
     });
 
-    // 合约关闭后不能进行主动转账
+    // cannot call transfer when contract closed
     it('can not transfer when contract closed', async () => {
         const ustock = await createToken();
 
@@ -134,7 +134,7 @@ contract('Ustock', (accounts) => {
         assert.equal(privateRaiserBalance.toNumber(), 0, 'privateRaiser Wallet balance mismatch');
     });
 
-    // 合约关闭后不能进行被动授权转账
+    /// cannot call transferFrom when contract is closed
     it('can not approve and transferFrom when contract closed', async () => {
         const ustock = await createToken();
         await ustock.close({from: owner});
@@ -146,7 +146,7 @@ contract('Ustock', (accounts) => {
         assert.equal(privateRaiserBalance.toNumber(), 0, 'privateRaiser Wallet balance mismatch');
     });
 
-    // 合约关闭前可以注册
+    // can register when contract is open
     it('can register when contract open', async () => {
         const ustock = await createToken();
 
@@ -164,7 +164,7 @@ contract('Ustock', (accounts) => {
         assert.equal(expectedKey2, key2, 'key2 register mismatch');
     });
 
-    // 合约关闭后不可以继续注册
+    // can not register when contract is closed
     it('can not register when contract closed', async () => {
         const ustock = await createToken();
         await ustock.close({from: owner});
