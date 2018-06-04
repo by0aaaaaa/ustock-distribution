@@ -31,10 +31,10 @@ contract('TokenVesting', async (accounts) => {
     const beneficiary = accounts[5];
 
     beforeEach(async function () {
-        //构造代币合约
+        // initialize a token contract
         this.token = await Ustock.new({from: owner});
 
-        // 针对私募情况，构造一个半年前的起始时间即可
+        // for private equity firms, initialize a contract half an year earlier
         //this.start = new Date(2017, 11, 1).getTime() / 1000; // +1 minute so it starts after contract instantiation
         //console.log(this.start,latestTime())
 
@@ -48,12 +48,13 @@ contract('TokenVesting', async (accounts) => {
         this.phase = 4;
 
         //构造锁仓合约
+        // initialize a locking contract
         this.vesting = await TokenVesting.new(beneficiary, this.start, this.duration, this.phase, true, {from: owner});
 
         //const balanceOwner = await this.token.balanceOf(owner);
         //console.log(balanceOwner.toNumber())
 
-        //将代币合约转入到锁仓合约的地址中
+        // transfer token to the locking contract
         console.log(amount.toNumber())
         await this.token.transfer(this.vesting.address, amount, {from: owner});
 
@@ -63,6 +64,7 @@ contract('TokenVesting', async (accounts) => {
 
 
     // 在归属第一个阶段结束前可以主动释放代币，但只能释放0个
+    // cannot be released before the first phase end
     it('cannot be released before the first phase end', async function () {
         await increaseTimeTo(this.start + duration.minutes(1));
         await this.vesting.release(this.token.address).should.be.fulfilled;
@@ -70,7 +72,7 @@ contract('TokenVesting', async (accounts) => {
         balance.should.bignumber.equal(0);
     });
 
-    // 在归属第一个阶段后能够释放 1/phase 数量的代币
+    // after the first phase, release (amount = 1/phase) token
     it('should release proper amount after the first phase', async function () {
         await increaseTimeTo(this.start + duration.seconds(this.duration / this.phase) + duration.minutes(100));
 
@@ -82,7 +84,7 @@ contract('TokenVesting', async (accounts) => {
         balance.should.bignumber.equal(amount.div(this.phase).floor());
     });
 
-    // 在归属第n个阶段结束时，直接释放 n*(1/phase) 数量的代币
+    // after the time point of n phase, release (amount = n*1/phase) token
     it('should directly release n*(1/phase) tokens when at the time point of n phase', async function () {
         const vestingPeriod = this.duration;
         const checkpoints = 4;
@@ -101,7 +103,7 @@ contract('TokenVesting', async (accounts) => {
         }
     });
 
-    // 在归属第n个阶段结束前，仍只能释放 (n-1)*(1/phase) 数量的代币
+    // before the time point of n phase, only release (amount = (n-1)*1/phase) token
     it('should still release (n-1)*(1/phase) tokens when before the time point of n phase', async function () {
         const vestingPeriod = this.duration;
         const checkpoints = 4;
@@ -121,7 +123,7 @@ contract('TokenVesting', async (accounts) => {
         }
     });
 
-    // 应该在归属期结束后，释放所有
+    // in the end, release all
     it('should have released all after end', async function () {
         await increaseTimeTo(this.start + this.duration);
 
@@ -131,18 +133,18 @@ contract('TokenVesting', async (accounts) => {
         balance.should.bignumber.equal(amount);
     });
 
-    // 如果设置了可废除，则可以废除
+    // if revocable is set, can be revoked by owner
     it('should be revoked by owner if revocable is set', async function () {
         await this.vesting.revoke(this.token.address, {from: owner}).should.be.fulfilled;
     });
 
-    // 如果没有设置可废除，则可不以废除
+    // if revocable is not set, cannot be revoked by owner
     it('should fail to be revoked by owner if revocable not set', async function () {
         const vesting = await TokenVesting.new(beneficiary, this.start, this.duration, this.phase, false, {from: owner});
         await vesting.revoke(this.token.address, {from: owner}).should.be.rejectedWith(EVMRevert);
     });
 
-    // 在废除后，没有归属的部分要被回收到owner帐户中
+    // when rovoked, non-vested tokens are returned to owner's account
     it('should return the non-vested tokens when revoked by owner', async function () {
         await increaseTimeTo(this.start + duration.seconds(this.duration / this.phase) + duration.minutes(1));
 
@@ -155,7 +157,7 @@ contract('TokenVesting', async (accounts) => {
         const beneficiaryBalance2 = await this.token.balanceOf(beneficiary);
         //console.log(beneficiaryBalance2.toNumber())
 
-        // 你可以自己去释放，这一步我们不关心
+        // release at will
         await this.vesting.release(this.token.address);
 
         const beneficiaryBalance3 = await this.token.balanceOf(beneficiary);
@@ -169,7 +171,7 @@ contract('TokenVesting', async (accounts) => {
         ownerBalance.should.bignumber.equal(originalOwnerBalance.add(amount.sub(vested)));
     });
 
-    // 在废除前后，已归属的部分应该保持不变
+    // vested tokens are untouched, when revoked by owner
     it('should keep the vested tokens when revoked by owner', async function () {
         await increaseTimeTo(this.start + duration.seconds(this.duration / this.phase) + duration.minutes(1));
 
@@ -182,7 +184,7 @@ contract('TokenVesting', async (accounts) => {
         vestedPre.should.bignumber.equal(vestedPost);
     });
 
-    // 应该只能废除一遍
+    // revoked only once
     it('should fail to be revoked a second time', async function () {
         await increaseTimeTo(this.start + duration.seconds(this.duration / this.phase) + duration.minutes(1));
 
@@ -195,8 +197,8 @@ contract('TokenVesting', async (accounts) => {
         //console.log(vested.toNumber())
     });
 
-    // 应该只能release一遍
-    it('should fail to be revoked a second time', async function () {
+    // release only once
+    it('should fail to be released a second time', async function () {
         await increaseTimeTo(this.start + duration.seconds(this.duration / this.phase) + duration.minutes(1));
 
         await this.vesting.release(this.token.address);
