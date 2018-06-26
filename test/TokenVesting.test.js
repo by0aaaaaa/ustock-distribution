@@ -21,6 +21,7 @@ require('chai')
 
 const Ustock = artifacts.require('Ustock');
 const TokenVesting = artifacts.require('TokenVesting');
+const TokenVestingFactory = artifacts.require('TokenVestingFactory');
 
 contract('TokenVesting', async (accounts) => {
 
@@ -48,13 +49,16 @@ contract('TokenVesting', async (accounts) => {
         this.phase = 4;
 
         //构造锁仓合约
-        this.vesting = await TokenVesting.new(beneficiary, this.start, this.duration, this.phase, true, {from: owner});
+        this.vesting = await TokenVesting.new(owner, beneficiary, this.start, this.duration, this.phase, true, {from: owner});
+
+        //const vestingOwner = await this.vesting.owner();
+        //console.log(vestingOwner)
 
         //const balanceOwner = await this.token.balanceOf(owner);
         //console.log(balanceOwner.toNumber())
 
         //将代币合约转入到锁仓合约的地址中
-        console.log(amount.toNumber())
+        //console.log(amount.toNumber())
         await this.token.transfer(this.vesting.address, amount, {from: owner});
 
         //const balanceOwner2 = await this.token.balanceOf(owner);
@@ -210,3 +214,5 @@ contract('TokenVesting', async (accounts) => {
         balanceFirst.should.bignumber.equal(balanceSec);
     });
 });
+
+

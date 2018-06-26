@@ -6,13 +6,16 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 
-contract TokenVesting is Ownable {
+contract TokenVesting {
     using SafeMath for uint256;
     using SafeERC20 for ERC20Basic;
 
     event Released(uint256 amount);
     event Revoked();
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
+    // owner of the token instance
+    address public owner;
     // beneficiary of tokens after they are released
     address public beneficiary;
     // start time of vesting
@@ -37,6 +40,7 @@ contract TokenVesting is Ownable {
      * @param _revocable whether the vesting is revocable or not
      */
     constructor(
+        address _owner,
         address _beneficiary,
         uint256 _start,
         uint256 _duration,
@@ -48,6 +52,7 @@ contract TokenVesting is Ownable {
         require(_beneficiary != address(0));
         require(_phase >= 1);
 
+        owner = _owner;
         beneficiary = _beneficiary;
         start = _start;
         duration = _duration;
@@ -118,4 +123,23 @@ contract TokenVesting is Ownable {
             return totalBalance.div(phase).mul(currentPhase);
         }
     }
+
+    /**
+     * @dev Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(msg.sender == owner);
+        _;
+    }
+
+    /**
+     * @dev Allows the current owner to transfer control of the contract to a newOwner.
+     * @param newOwner The address to transfer ownership to.
+     */
+    function transferOwnership(address newOwner) public onlyOwner {
+        require(newOwner != address(0));
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+    }
+
 }
