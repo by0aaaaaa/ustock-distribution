@@ -6,7 +6,7 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
 
 contract Ustock is StandardToken, Ownable {
-    string public name = "UGas";
+    string public name = "UltrainGas";
     string public symbol = "UGS";
     uint256 public decimals = 18;
     uint256 public INITIAL_SUPPLY = 1000000000 * (10 ** uint256(decimals));                     // total supply
